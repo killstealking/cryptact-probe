@@ -27,7 +27,7 @@ TYPE_TO_ACTION = {
     "withdraw": "RECOVER",
     "lose_bonds": "REDUCE",
     "get_bonds": "BONUS",
-
+    "receive": "BONUS"
 }
 
 
