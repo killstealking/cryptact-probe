@@ -1,8 +1,9 @@
-from decimal import Decimal
-from pydantic import BaseModel
-from datetime import datetime
-from typing import Literal, Optional
 import csv
+from datetime import datetime
+from decimal import Decimal
+from typing import Literal, Optional
+
+from pydantic import BaseModel
 
 Fields = Literal[
     "executed_at",
@@ -16,7 +17,7 @@ Fields = Literal[
     "uti",
     "caaj_from",
     "caaj_to",
-    "comment"
+    "comment",
 ]
 
 
@@ -44,9 +45,13 @@ class CaajRepository:
         with open(file_path) as f:
             for row in csv.DictReader(f, skipinitialspace=True):
                 caaj_list.append(Caaj.parse_obj({k: v for k, v in row.items()}))
-        self.grouped_caaj: dict[str, list[Caaj]] = self._group_by_transaction_uuid(caaj_list=caaj_list)
+        self.grouped_caaj: dict[str, list[Caaj]] = self._group_by_transaction_uuid(
+            caaj_list=caaj_list
+        )
 
-    def _group_by_transaction_uuid(self, caaj_list: list[Caaj]) -> dict[str, list[Caaj]]:
+    def _group_by_transaction_uuid(
+        self, caaj_list: list[Caaj]
+    ) -> dict[str, list[Caaj]]:
         grouped_caaj_dict: dict[str, list[Caaj]] = {}
         for caaj in caaj_list:
             if caaj["trade_uuid"] == "":  # Trade UUIDが入っていないバグへの一時的措置
@@ -58,4 +63,7 @@ class CaajRepository:
         return grouped_caaj_dict
 
     def get_grouped_caaj(self) -> dict[str, list[Caaj]]:
+        """
+        trade_uuidでくくったCaajの辞書を返す
+        """
         return self.grouped_caaj

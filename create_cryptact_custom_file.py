@@ -1,8 +1,10 @@
+from typing import Union
+
 from caaj import CaajRepository
 from cryptact_custom_file import CryptactRepository
 
 
-def create_cryptact_custom_file(path: str = None):
+def create_cryptact_custom_file(path: Union[str, None] = None):
     if path is None:
         path = "result.csv"
     caaj_repo = CaajRepository(file_path=path)

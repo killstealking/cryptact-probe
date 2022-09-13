@@ -1,12 +1,16 @@
-from decimal import Decimal
-from pydantic import BaseModel
-from datetime import datetime
-from typing import Literal, Optional
-from caaj import Caaj
 import decimal
+import urllib
+from datetime import datetime
+from decimal import Decimal
+from typing import Any, Literal, Optional, Union
+
 import pandas as pd
+from pydantic import BaseModel, validator
 
+from caaj import Caaj
 
+urllib: Any
+pd: Any
 Fields = Literal[
     "Timestamp",
     "Action",
@@ -16,8 +20,7 @@ Fields = Literal[
     "Price",
     "Counter",
     "Fee",
-    "FeeCcy"
-    "Comment"
+    "FeeCcyComment",
 ]
 
 TYPE_TO_ACTION = {
@@ -27,12 +30,12 @@ TYPE_TO_ACTION = {
     "withdraw": "RECOVER",
     "lose_bonds": "REDUCE",
     "get_bonds": "BONUS",
-    "receive": "BONUS"
+    "receive": "BONUS",
 }
 
 
 class CryptactCustomFile(BaseModel):
-    Timestamp: datetime
+    Timestamp: str
     Action: str
     Source: str
     Base: str
@@ -42,6 +45,13 @@ class CryptactCustomFile(BaseModel):
     Fee: Decimal
     FeeCcy: str
     Comment: Optional[str]
+
+    def __getitem__(self, item: Fields):
+        return getattr(self, item)
+
+    @validator("Timestamp", pre=True)
+    def parse_timestamp(cls, value: datetime):
+        return datetime.strftime(value, "%Y/%m/%d %H:%M:%S")
 
 
 class CryptactRepository:
@@ -56,7 +66,7 @@ class CryptactRepository:
         return "{platform}/{application}/{service}".format(
             platform=caaj["platform"],
             application=caaj["application"],
-            service=caaj["application"]
+            service=caaj["service"],
         )
 
     def _detect_action_from_type(self, caaj: Caaj) -> str:
@@ -74,7 +84,7 @@ class CryptactRepository:
         """
         caajのutiからcryptact形式におけるBaseを推定して返す
         """
-        base = uti.upper()
+        base: str = urllib.parse.unquote(uti).upper()
         # 真面目にやる場合はCryptactの対応トークンの取得に苦労しそう
         return base
 
@@ -82,37 +92,37 @@ class CryptactRepository:
         """
         単独で完結しているcaajをcryptact形式に変更する
         """
-        cryptact_format: CryptactCustomFile = {
-            "Timestamp": caaj["executed_at"].strftime('%Y/%m/%d %H:%M:%S'),
+        cryptact_format: dict[str, Union[str, Decimal, None]] = {
+            "Timestamp": caaj["executed_at"],
             "Action": self._detect_action_from_type(caaj=caaj),
             "Source": self._create_source_from_caaj(caaj=caaj),
             "Base": self._convert_base_from_uti(uti=caaj["uti"]),
             "Volume": caaj["amount"],
             "Price": None,
             "Counter": "JPY",
-            "Fee": 0,
+            "Fee": Decimal(0),
             "FeeCcy": "JPY",
-            "Comment": caaj["comment"]
+            "Comment": caaj["comment"],
         }
         if cryptact_format["Action"] == "":
             return None
-        self.cryptact_custom_files.append(cryptact_format)
+        self.cryptact_custom_files.append(CryptactCustomFile.parse_obj(cryptact_format))
 
     def _resolve_multi_caaj(self, caaj_list: list[Caaj]) -> None:
         """
         複数からなるcaajをcryptact形式にする
         """
-        get_caaj = []
-        lose_caaj = []
-        deposit_caaj = []
-        get_bonds_caaj = []
-        withdraw_caaj = []
-        lose_bonds_caaj = []
+        get_caajs: list[Caaj] = []
+        lose_caajs: list[Caaj] = []
+        deposit_caaj: list[Caaj] = []
+        get_bonds_caaj: list[Caaj] = []
+        withdraw_caaj: list[Caaj] = []
+        lose_bonds_caaj: list[Caaj] = []
         for caaj in caaj_list:
             if caaj["type"] == "get":
-                get_caaj.append(caaj)
+                get_caajs.append(caaj)
             elif caaj["type"] == "lose":
-                lose_caaj.append(caaj)
+                lose_caajs.append(caaj)
             elif caaj["type"] == "deposit":
                 deposit_caaj.append(caaj)
             elif caaj["type"] == "get_bonds":
@@ -121,26 +131,29 @@ class CryptactRepository:
                 withdraw_caaj.append(caaj)
             elif caaj["type"] == "lose_bonds":
                 lose_bonds_caaj.append(caaj)
-        if len(get_caaj) == 1 and len(lose_caaj) == 1:
-            get_caaj = get_caaj[0]
-            lose_caaj = lose_caaj[0]
+        if len(get_caajs) == 1 and len(lose_caajs) == 1:
+            get_caaj: Caaj = get_caajs[0]
+            lose_caaj: Caaj = lose_caajs[0]
             decimal.getcontext().prec = 10
             # https://support.cryptact.com/hc/ja/articles/360002571312-%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95-%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E5%8F%96%E5%BC%95-#menu216
-            cryptact_format: CryptactCustomFile = {
-                "Timestamp": get_caaj["executed_at"].strftime('%Y/%m/%d %H:%M:%S'),
+            cryptact_format: dict[str, Union[str, Decimal, None]] = {
+                "Timestamp": get_caaj["executed_at"],
                 "Action": "BUY",
                 "Source": self._create_source_from_caaj(caaj=get_caaj),
                 "Base": self._convert_base_from_uti(uti=get_caaj["uti"]),
                 "Volume": get_caaj["amount"],
                 "Price": (
                     decimal.Decimal(lose_caaj["amount"])
-                    / decimal.Decimal(get_caaj["amount"])),
+                    / decimal.Decimal(get_caaj["amount"])
+                ),
                 "Counter": self._convert_base_from_uti(uti=lose_caaj["uti"]),
-                "Fee": 0,
+                "Fee": Decimal(0),
                 "FeeCcy": "JPY",
-                "Comment": get_caaj["comment"]
+                "Comment": get_caaj["comment"],
             }
-            self.cryptact_custom_files.append(cryptact_format)
+            self.cryptact_custom_files.append(
+                CryptactCustomFile.parse_obj(cryptact_format)
+            )
         else:
             for caaj in caaj_list:
                 self._resolve_single_caaj(caaj=caaj)
@@ -157,8 +170,17 @@ class CryptactRepository:
                 self._resolve_multi_caaj(caaj_list=transactions)
 
     def get_cryptact_custom_files(self) -> list[CryptactCustomFile]:
+        """
+        Cryptactの形式になったものを返す
+        """
         return self.cryptact_custom_files
 
-    def export_cryptact_custom_files(self) -> None:
-        df = pd.DataFrame(self.cryptact_custom_files).drop(columns="Comment")
-        df.to_csv("custom.csv", index=False)
+    def export_cryptact_custom_files(self, file_path: Union[str, None] = None) -> None:
+        """
+        指定のファイルパスにcsvで吐き出す。\n
+        指定がなければ./custom.csvで吐き出す
+        """
+        df = pd.DataFrame([s.__dict__ for s in self.cryptact_custom_files]).drop(
+            columns="Comment"
+        )
+        df.to_csv("custom.csv" if file_path is None else file_path, index=False)

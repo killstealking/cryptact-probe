@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
+    hooks:
+      - id: black
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 5.0.4
+    hooks:
+      - id: flake8
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        # Replace the version below with the latest pyright version
+        additional_dependencies: ["pyright@1.1.268"]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.6.1
+    hooks:
+      - id: prettier
