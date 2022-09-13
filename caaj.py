@@ -1,7 +1,7 @@
 from decimal import Decimal
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 import csv
 
 Fields = Literal[
@@ -19,11 +19,12 @@ Fields = Literal[
     "comment"
 ]
 
+
 class Caaj(BaseModel):
     executed_at: datetime
     platform: str
     application: str
-    service:str
+    service: str
     transaction_id: str
     trade_uuid: Optional[str]
     type: str
@@ -38,17 +39,17 @@ class Caaj(BaseModel):
 
 
 class CaajRepository:
-    def __init__(self) -> None:
+    def __init__(self, file_path: str) -> None:
         caaj_list: list[Caaj] = []
-        with open('result.csv') as f:
+        with open(file_path) as f:
             for row in csv.DictReader(f, skipinitialspace=True):
-                caaj_list.append(Caaj.parse_obj({k:v for k, v in row.items()}))
+                caaj_list.append(Caaj.parse_obj({k: v for k, v in row.items()}))
         self.grouped_caaj: dict[str, list[Caaj]] = self._group_by_transaction_uuid(caaj_list=caaj_list)
 
     def _group_by_transaction_uuid(self, caaj_list: list[Caaj]) -> dict[str, list[Caaj]]:
-        grouped_caaj_dict: dict[str, list[caaj]] = {}
+        grouped_caaj_dict: dict[str, list[Caaj]] = {}
         for caaj in caaj_list:
-            if caaj["trade_uuid"] == "": # Trade UUIDが入っていないバグへの一時的措置
+            if caaj["trade_uuid"] == "":  # Trade UUIDが入っていないバグへの一時的措置
                 continue
             if caaj["trade_uuid"] in grouped_caaj_dict:
                 grouped_caaj_dict[caaj["trade_uuid"]].append(caaj)

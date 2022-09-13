@@ -4,9 +4,11 @@ from datetime import datetime
 from typing import Literal, Optional
 from caaj import Caaj
 import decimal
+import pandas as pd
+
 
 Fields = Literal[
-    "TimeStamp",
+    "Timestamp",
     "Action",
     "Source",
     "Base",
@@ -14,7 +16,7 @@ Fields = Literal[
     "Price",
     "Counter",
     "Fee",
-    "FeeCry"
+    "FeeCcy"
     "Comment"
 ]
 
@@ -30,7 +32,7 @@ TYPE_TO_ACTION = {
 
 
 class CryptactCustomFile(BaseModel):
-    TimeStamp: datetime
+    Timestamp: datetime
     Action: str
     Source: str
     Base: str
@@ -38,7 +40,7 @@ class CryptactCustomFile(BaseModel):
     Price: Optional[Decimal]
     Counter: str
     Fee: Decimal
-    FeeCry: str
+    FeeCcy: str
     Comment: Optional[str]
 
 
@@ -65,7 +67,8 @@ class CryptactRepository:
             return "SENDFEE"
         if caaj["type"] in TYPE_TO_ACTION:
             return TYPE_TO_ACTION[caaj["type"]]
-        return "BUY"
+        else:
+            return ""
 
     def _convert_base_from_uti(self, uti: str) -> str:
         """
@@ -80,17 +83,19 @@ class CryptactRepository:
         単独で完結しているcaajをcryptact形式に変更する
         """
         cryptact_format: CryptactCustomFile = {
-            "TimeStamp": caaj["executed_at"],
-            "Action": self._detect_action_from_type(type=caaj),
+            "Timestamp": caaj["executed_at"].strftime('%Y/%m/%d %H:%M:%S'),
+            "Action": self._detect_action_from_type(caaj=caaj),
             "Source": self._create_source_from_caaj(caaj=caaj),
             "Base": self._convert_base_from_uti(uti=caaj["uti"]),
             "Volume": caaj["amount"],
             "Price": None,
             "Counter": "JPY",
             "Fee": 0,
-            "FeeCry": "JPY",
+            "FeeCcy": "JPY",
             "Comment": caaj["comment"]
-            }
+        }
+        if cryptact_format["Action"] == "":
+            return None
         self.cryptact_custom_files.append(cryptact_format)
 
     def _resolve_multi_caaj(self, caaj_list: list[Caaj]) -> None:
@@ -122,8 +127,8 @@ class CryptactRepository:
             decimal.getcontext().prec = 10
             # https://support.cryptact.com/hc/ja/articles/360002571312-%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95-%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E5%8F%96%E5%BC%95-#menu216
             cryptact_format: CryptactCustomFile = {
-                "TimeStamp": get_caaj["executed_at"],
-                "Action": "Buy",
+                "Timestamp": get_caaj["executed_at"].strftime('%Y/%m/%d %H:%M:%S'),
+                "Action": "BUY",
                 "Source": self._create_source_from_caaj(caaj=get_caaj),
                 "Base": self._convert_base_from_uti(uti=get_caaj["uti"]),
                 "Volume": get_caaj["amount"],
@@ -132,12 +137,13 @@ class CryptactRepository:
                     / decimal.Decimal(get_caaj["amount"])),
                 "Counter": self._convert_base_from_uti(uti=lose_caaj["uti"]),
                 "Fee": 0,
-                "FeeCry": "JPY",
+                "FeeCcy": "JPY",
                 "Comment": get_caaj["comment"]
             }
             self.cryptact_custom_files.append(cryptact_format)
-        elif 
-            
+        else:
+            for caaj in caaj_list:
+                self._resolve_single_caaj(caaj=caaj)
 
     def create_cryptact_custom_files(self) -> None:
         """
@@ -149,3 +155,10 @@ class CryptactRepository:
                 self._resolve_single_caaj(caaj=transactions[0])
             else:
                 self._resolve_multi_caaj(caaj_list=transactions)
+
+    def get_cryptact_custom_files(self) -> list[CryptactCustomFile]:
+        return self.cryptact_custom_files
+
+    def export_cryptact_custom_files(self) -> None:
+        df = pd.DataFrame(self.cryptact_custom_files).drop(columns="Comment")
+        df.to_csv("custom.csv", index=False)

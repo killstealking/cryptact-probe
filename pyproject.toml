@@ -9,6 +9,7 @@ packages = [{include = "to_cryptact_converter"}]
 [tool.poetry.dependencies]
 python = "^3.9"
 pydantic = "^1.10.2"
+pandas = "^1.4.4"
 
 
 [build-system]
