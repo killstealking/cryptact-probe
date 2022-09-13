@@ -48,6 +48,8 @@ class CaajRepository:
     def _group_by_transaction_uuid(self, caaj_list: list[Caaj]) -> dict[str, list[Caaj]]:
         grouped_caaj_dict: dict[str, list[caaj]] = {}
         for caaj in caaj_list:
+            if caaj["trade_uuid"] == "": # Trade UUIDが入っていないバグへの一時的措置
+                continue
             if caaj["trade_uuid"] in grouped_caaj_dict:
                 grouped_caaj_dict[caaj["trade_uuid"]].append(caaj)
             else:
