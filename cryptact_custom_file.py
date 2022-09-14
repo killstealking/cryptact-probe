@@ -132,6 +132,7 @@ class CryptactRepository:
             elif caaj["type"] == "lose_bonds":
                 lose_bonds_caaj.append(caaj)
         if len(get_caajs) == 1 and len(lose_caajs) == 1:
+            # 1:1のGET:LOSEはSWAPとして処理
             get_caaj: Caaj = get_caajs[0]
             lose_caaj: Caaj = lose_caajs[0]
             decimal.getcontext().prec = 10
@@ -155,6 +156,7 @@ class CryptactRepository:
                 CryptactCustomFile.parse_obj(cryptact_format)
             )
         else:
+            # 他の仕分けがまだ実装されていないため、一つずつ処理
             for caaj in caaj_list:
                 self._resolve_single_caaj(caaj=caaj)
 
