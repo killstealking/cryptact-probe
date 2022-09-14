@@ -31,6 +31,7 @@ TYPE_TO_ACTION = {
     "lose_bonds": "REDUCE",
     "get_bonds": "BONUS",
     "receive": "BONUS",
+    "send": "SELL",
 }
 
 
@@ -136,6 +137,7 @@ class CryptactRepository:
             get_caaj: Caaj = get_caajs[0]
             lose_caaj: Caaj = lose_caajs[0]
             decimal.getcontext().prec = 10
+            # 小数点以下10桁までしか対応していないため上記の様な設定を行う
             # https://support.cryptact.com/hc/ja/articles/360002571312-%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AE%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95-%E3%82%AB%E3%82%B9%E3%82%BF%E3%83%A0%E5%8F%96%E5%BC%95-#menu216
             cryptact_format: dict[str, Union[str, Decimal, None]] = {
                 "Timestamp": get_caaj["executed_at"],
