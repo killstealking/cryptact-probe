@@ -50,4 +50,3 @@ executed_at,platform,application,service,transaction_id,trade_uuid,type,amount,u
 2022-02-01 09:37:58,osmosis,osmosis,osmosis,CC0E588D689271DABA54F7DFEE62F4125D92C19360D69BDB447913C4C1D7A575,bcb504c9-f731-4445-a3fa-a38c4f5fda63,receive,0.005,atom,osmo1yl6hdjhmkf37639730gffanpzndzdpmhxy9ep3,osmo14ls9rcxxd5gqwshj85dae74tcp3umypp786h3m,
 2022-02-08 01:35:35,osmosis,osmosis,osmosis,208A77E3843564B4B3852F0339F5A63E7D52604FF0184CDC3F04E435CF1D9907,,send,0.05,atom,osmo14ls9rcxxd5gqwshj85dae74tcp3umypp786h3m,cosmos14ls9rcxxd5gqwshj85dae74tcp3umyppkuf88f,
 2022-02-08 01:43:31,osmosis,osmosis,osmosis,AD666E0F5FB2D7DEF4B09E7BC31AF4BECB49EF76E948C4445AFF77EFFB4DEC6B,,send,0.000049,juno,osmo14ls9rcxxd5gqwshj85dae74tcp3umypp786h3m,juno14ls9rcxxd5gqwshj85dae74tcp3umyppqw2uq4,
-
